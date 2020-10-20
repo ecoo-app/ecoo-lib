@@ -296,7 +296,7 @@ class _MyAppState extends State<MyApp> {
     final key = CryptoService.generateRadomKey(32);
     final nonce = CryptoService.generateRadomKey(24);
     final crypto = CryptoService(key);
-    final encryptedSKHex = crypto.encrypt(keyPair.edsk(), hex.encode(nonce.codeUnits));
+    final encryptedSKHex = crypto.encrypt(keyPair.edsk(), nonce);
     final plain = crypto.decrypt(encryptedSKHex, nonce);
     final list = plain.toList();
     print(String.fromCharCodes(list));
