@@ -227,6 +227,26 @@ class _MyAppState extends State<MyApp> {
     }
   }
 
+  _openCashoutTransactions([ListCursor cursor]) async {
+    if (cursor == null) {
+      final wallet = await service.fetchWallet("AB123456");
+      final txs = await service.fetchOpenCashoutTransactions(walletID: wallet.walletID, pageSize: 2);
+      for (final tx in txs.items) {
+        print(tx.toJson().toString());
+      }
+      if (txs.cursor.next != null) {
+        await _openCashoutTransactions(txs.cursor);
+      } else {
+        print("NO MORE TO LOAD $cursor");
+      }
+    } else {
+      final txs = await service.fetchOpenCashoutTransactions(cursor: cursor);
+      for (final tx in txs.items) {
+        print(tx.toJson().toString());
+      }
+    }
+  }
+
   _wallets() async {
     final wallets = await service.fetchWallets();
     for (final wallet in wallets.items) {
@@ -256,7 +276,7 @@ class _MyAppState extends State<MyApp> {
       final ownerWallet = fromWallet.currency.owner;
       transaction = await service.transfer(fromWallet, ownerWallet, fromWallet.balance);
     } else {
-      transaction = (await service.fetchTransactions(walletID: fromWallet.currency.owner.walletID, pageSize: 100)).items.firstWhere((element) => element.to == fromWallet.currency.owner.walletID);
+      transaction = (await service.fetchOpenCashoutTransactions(walletID: fromWallet.currency.owner.walletID, pageSize: 100)).items.first;
     }
     final cashOut = await service.cashOut(transaction, "Example AG", "CH93 0076 2011 6238 5295 7");
     print(cashOut.toJson().toString());
@@ -326,6 +346,8 @@ class _MyAppState extends State<MyApp> {
 
   _do() async {
     await _transactions();
+    // await _registerDevice();
+    // await _openCashoutTransactions();
     // await _currencies();
     // await _wallets();
     // await _transfer();
@@ -338,7 +360,6 @@ class _MyAppState extends State<MyApp> {
     // await _deleteProfile();
     // await _profiles();
     // await _verifyProfile();
-    // await _registerDevice();
     // await _cashOut();
     // await _crypto();
     // await _fetchAutoCompletion();

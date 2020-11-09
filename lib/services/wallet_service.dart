@@ -87,6 +87,7 @@ class WalletService {
   static const String _resendPINEndpoint = '/api/verification/resend_user_profile_pin/';
   static const String _userAutoCompletionEndpoint = '/api/verification/autocomplete_user/';
   static const String _companyAutoCompletionEndpoint = '/api/verification/autocomplete_company/';
+  static const String _openCashoutTransactionEndpoint = '/api/wallet/open_cashout_transaction/';
 
   final HTTPService _http;
 
@@ -299,6 +300,16 @@ class WalletService {
   /// Throws [NotAuthenticatedError] if the user is not logged in.
   Future<ListResponse<Transaction>> fetchTransactions({String walletID, ListCursor cursor, int pageSize = 10}) async {
     final endpoint = cursor?.next ?? "${WalletService._transactionEndpoint}?search=$walletID&page_size=$pageSize";
+    return _fetchList((dynamic json) { return Transaction.fromJson(json); }, endpoint);
+  }
+
+  /// Fetches open cashout transactions for the given [walletID]. It optionally takes a [pageSize].
+  /// For pagination, pass as argument the returned [cursor] to fetch the next page.
+  /// Either the [walletID] or the [cursor] parameter need to be supplied.
+  /// Throws [HTTPError] if the eCoupon backend returns an error response (meaning HTTP status code is not between 200-299).
+  /// Throws [NotAuthenticatedError] if the user is not logged in.
+  Future<ListResponse<Transaction>> fetchOpenCashoutTransactions({String walletID, ListCursor cursor, int pageSize = 10}) async {
+    final endpoint = cursor?.next ?? "${WalletService._openCashoutTransactionEndpoint}?wallet_id=$walletID&page_size=$pageSize";
     return _fetchList((dynamic json) { return Transaction.fromJson(json); }, endpoint);
   }
 
