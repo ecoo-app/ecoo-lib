@@ -141,6 +141,17 @@ public class SecureStorage {
             }
             return false
         }
+        
+        var isKeychainAuthCancelled: Bool {
+            if case let .internal(error) = self,
+               let keychainError = error as? Keychain.Error,
+               case let .internal(internalError) = keychainError,
+               let laError = internalError as? LAError {
+                
+                return laError.isCancelled
+            }
+            return false
+        }
 
         init(_ error: Swift.Error?) {
             if let error = error as? Error {
@@ -151,5 +162,12 @@ public class SecureStorage {
                 self = .unknown
             }
         }
+    }
+}
+
+extension LAError {
+    
+    var isCancelled: Bool {
+        errorCode == LAError.Code.appCancel.rawValue || errorCode == LAError.Code.userCancel.rawValue || errorCode == LAError.Code.systemCancel.rawValue
     }
 }
