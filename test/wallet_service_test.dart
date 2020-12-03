@@ -17,7 +17,6 @@ import 'package:ecoupon_lib/services/crypto_service.dart';
 import 'package:ecoupon_lib/services/wallet_service.dart';
 import 'package:ecoupon_lib/tezos/tezos.dart';
 import 'package:flutter/widgets.dart';
-import 'package:flutter_sodium/flutter_sodium.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:http/http.dart' as http;
@@ -245,42 +244,86 @@ void main() {
     }
   });
 
-  // test("Test Paper Transfer success", () async {
-  //   final client = MockClient();
-  //   final service = WalletService(baseURL, client);
+  test("Test Paper Transfer success", () async {
+    final client = MockClient();
+    final service = WalletService(baseURL, client);
 
-  //   final encKey = hex.encode(Sodium.randombytesBuf(32).toList());
-  //   final cryptoService = CryptoService(encKey);
-  //   final keyPair = Tezos.generateKeyPairFromEntropy(Tezos.generateEntropy());
+    final encKey = CryptoService.generateRadomKey(32);
+    final cryptoService = CryptoService(encKey);
+    final keyPair = Tezos.generateKeyPairFromEntropy(Tezos.generateEntropy());
+    final nonce = CryptoService.generateRadomKey(24);
     
-  //   final paperWallet = PaperWallet("MY662127", "e209daa6ea6fc5bbad8444fd261beabb7404e8f617c2b6e3", cryptoService.encrypt(keyPair.edsk(), "e209daa6ea6fc5bbad8444fd261beabb7404e8f617c2b6e3"));
+    final paperWallet = PaperWallet("AB123456", nonce, cryptoService.encrypt(keyPair.edsk(true), nonce));
     
-  //   when(client.get(_url("/api/wallet/wallet/${paperWallet.walletID}/"), headers: anyNamed("headers"))).thenAnswer((realInvocation) async => http.Response('{"nonce": 0}', 200, headers: {HttpHeaders.contentTypeHeader: "application/json"}));
-  //   when(client.post(_url("/api/wallet/meta_transaction/"), headers: anyNamed("headers"), body: anyNamed("body"))).thenAnswer((invocation) async {
-  //     final Map<String, dynamic> body = jsonDecode(invocation.namedArguments[Symbol("body")]);
-  //     final signature = body["signature"];
-  //     final fromPK = keyPair.edpk();
-  //     final toAddress = Tezos.getAddressFromEncodedPublicKey(Tezos.generateKeyPairFromEntropy(await EcouponLib.load(body["to_wallet"])).edpk());
-  //     final verified = service.verifyTransfer(fromPK, toAddress, body["amount"], body["nonce"], currency.tokenID, signature, Tezos.getKeyBytesFromEncoded(fromPK));
-  //     if (verified) {
-  //       return http.Response(
-  //         jsonEncode(Transaction("asdasdasda", body["from_wallet"], body["to_wallet"], body["amount"], TransactionState.open, DateTime.now(), "", body["nonce"], signature, null).toJson()), 
-  //         200, 
-  //         headers: {HttpHeaders.contentTypeHeader: "application/json"}
-  //       );
-  //     } else {
-  //       return http.Response('{"details": "invalid signature"}', 400, headers: {HttpHeaders.contentTypeHeader: "application/json"});
-  //     }
-  //   });
+    when(client.get(_url("/api/wallet/wallet/${paperWallet.walletID}/"), headers: anyNamed("headers"))).thenAnswer((realInvocation) async => http.Response('{"wallet_id": "${paperWallet.walletID}", "nonce": 0, "public_key": "${keyPair.edpk()}", "category": 0, "state": 2}', 200, headers: {HttpHeaders.contentTypeHeader: "application/json"}));
+    when(client.post(_url("/api/wallet/meta_transaction/"), headers: anyNamed("headers"), body: anyNamed("body"))).thenAnswer((invocation) async {
+      final Map<String, dynamic> body = jsonDecode(invocation.namedArguments[Symbol("body")]);
+      final signature = body["signature"];
+      final fromPK = keyPair.edpk();
+      final toAddress = Tezos.getAddressFromEncodedPublicKey(Tezos.generateKeyPairFromEntropy(await EcouponLib.load(body["to_wallet"])).edpk());
+      final verified = service.verifyTransfer(fromPK, toAddress, body["amount"], body["nonce"], currency.tokenID, signature, Tezos.getKeyBytesFromEncoded(fromPK));
+      if (verified) {
+        return http.Response(
+          jsonEncode(Transaction("asdasdasda", body["from_wallet"], body["to_wallet"], body["amount"], TransactionState.open, DateTime.now(), "", body["nonce"], signature, null).toJson()), 
+          200, 
+          headers: {HttpHeaders.contentTypeHeader: "application/json"}
+        );
+      } else {
+        return http.Response('{"details": "invalid signature"}', 400, headers: {HttpHeaders.contentTypeHeader: "application/json"});
+      }
+    });
 
-  //   final transaction = await service.paperTransfer(paperWallet, companyWallet, 1, encKey);
-  //   expect(transaction, isA<Transaction>());
-  //   expect(transaction.from, equals(paperWallet.walletID));
-  //   expect(transaction.to, equals(companyWallet.walletID));
-  //   expect(transaction.amount, equals(1));
-  //   expect(transaction.signature, isNotNull);
-  //   expect(transaction.state, equals(TransactionState.open));
-  // });
+    final transaction = await service.paperTransfer(paperWallet, companyWallet, 1, encKey);
+    expect(transaction, isA<Transaction>());
+    expect(transaction.from, equals(paperWallet.walletID));
+    expect(transaction.to, equals(companyWallet.walletID));
+    expect(transaction.amount, equals(1));
+    expect(transaction.signature, isNotNull);
+    expect(transaction.state, equals(TransactionState.open));
+  });
+
+  test("Test Paper Transfer 2 success", () async {  
+    final client = MockClient();
+    final service = WalletService(baseURL, client);
+
+    final encKey = CryptoService.generateRadomKey(32);
+    final cryptoService = CryptoService(encKey);
+    final keyPair = Tezos.generateKeyPairFromEntropy(Tezos.generateEntropy());
+    final nonce = CryptoService.generateRadomKey(24);
+    final deepLink = Uri.https("app.ecoo.ch", "/deeplink/v1/wallet", {
+      "id": "AB123456",
+      "nonce": base64Encode(hex.decode(nonce)),
+      "pk": base64Encode(hex.decode(cryptoService.encrypt(keyPair.edsk(true), nonce)))
+    });
+    
+    final paperWallet = PaperWallet.fromDeepLink(deepLink);
+    
+    when(client.get(_url("/api/wallet/wallet/${paperWallet.walletID}/"), headers: anyNamed("headers"))).thenAnswer((realInvocation) async => http.Response('{"wallet_id": "${paperWallet.walletID}", "nonce": 0, "public_key": "${keyPair.edpk()}", "category": 0, "state": 2}', 200, headers: {HttpHeaders.contentTypeHeader: "application/json"}));
+    when(client.post(_url("/api/wallet/meta_transaction/"), headers: anyNamed("headers"), body: anyNamed("body"))).thenAnswer((invocation) async {
+      final Map<String, dynamic> body = jsonDecode(invocation.namedArguments[Symbol("body")]);
+      final signature = body["signature"];
+      final fromPK = keyPair.edpk();
+      final toAddress = Tezos.getAddressFromEncodedPublicKey(Tezos.generateKeyPairFromEntropy(await EcouponLib.load(body["to_wallet"])).edpk());
+      final verified = service.verifyTransfer(fromPK, toAddress, body["amount"], body["nonce"], currency.tokenID, signature, Tezos.getKeyBytesFromEncoded(fromPK));
+      if (verified) {
+        return http.Response(
+          jsonEncode(Transaction("asdasdasda", body["from_wallet"], body["to_wallet"], body["amount"], TransactionState.open, DateTime.now(), "", body["nonce"], signature, null).toJson()), 
+          200, 
+          headers: {HttpHeaders.contentTypeHeader: "application/json"}
+        );
+      } else {
+        return http.Response('{"details": "invalid signature"}', 400, headers: {HttpHeaders.contentTypeHeader: "application/json"});
+      }
+    });
+    
+    final transaction = await service.paperTransfer(paperWallet, companyWallet, 1, encKey);
+    expect(transaction, isA<Transaction>());
+    expect(transaction.from, equals(paperWallet.walletID));
+    expect(transaction.to, equals(companyWallet.walletID));
+    expect(transaction.amount, equals(1));
+    expect(transaction.signature, isNotNull);
+    expect(transaction.state, equals(TransactionState.open));
+  });
 
   test("Fetch Wallets", () async {
     final client = MockClient();

@@ -12,6 +12,7 @@ import 'package:pointycastle/macs/hmac.dart';
 import 'package:pointycastle/api.dart';
 import 'dart:convert';
 import 'package:convert/convert.dart';
+import 'package:flutter/foundation.dart';
 
 class TezosKeyPair {
   final Uint8List publicKey;
@@ -24,8 +25,17 @@ class TezosKeyPair {
     return bs58Check.encode(Uint8List.fromList(prefixed));
   }
 
-  String edsk() {
-    final prefixed = [43, 246, 78, 7] + privateKey;
+  String edsk([bool skOnly = false]) {
+    var sk = privateKey;
+    if (skOnly && privateKey.length > publicKey.length) {
+      final publicKeyStartIndex = privateKey.length - publicKey.length;
+      final pk = privateKey.sublist(publicKeyStartIndex).toList();
+      final pk2 = publicKey.toList();
+      if (listEquals(pk, pk2)) {
+        sk = privateKey.sublist(0, publicKeyStartIndex);
+      }
+    }
+    final prefixed = [43, 246, 78, 7] + sk;
     return bs58Check.encode(Uint8List.fromList(prefixed));
   }
 }
