@@ -20,4 +20,8 @@ class EcouponLib {
   static Future<String> load(String key) async {
     return await _channel.invokeMethod('load', <String, String>{'key': key});
   }
+
+  static Future<bool> isDeviceSecured() async {
+    return await _channel.invokeMethod('isDeviceSecured');
+  }
 }

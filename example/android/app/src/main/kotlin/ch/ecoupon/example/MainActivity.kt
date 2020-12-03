@@ -1,4 +1,4 @@
-package ch.papers.ecoupon_lib_example
+package ch.ecoupon.example
 
 import io.flutter.embedding.android.FlutterActivity
 

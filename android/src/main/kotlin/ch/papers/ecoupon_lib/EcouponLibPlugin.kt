@@ -129,6 +129,10 @@ public class EcouponLibPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
           result.error("-3", "Wrong arguments", "Wrong arguments for " + call.method);
         }
       }
+      "isDeviceSecured" -> {
+        var secured = keyguardManager?.isKeyguardSecure == true
+        result.success(secured)
+      }
       else -> {
         result.notImplemented()
       }

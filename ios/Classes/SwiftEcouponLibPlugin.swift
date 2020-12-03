@@ -1,10 +1,12 @@
 import Flutter
 import UIKit
+import LocalAuthentication
 
 private enum Method: String {
     case load
     case store
     case getPlatformVersion
+    case isDeviceSecured
 }
 
 private enum FlutterErrorCode: Int {
@@ -13,6 +15,7 @@ private enum FlutterErrorCode: Int {
     case loadWrongArguments = -3
     case storeWrongArguments = -4
     case keychainAuthError = -5
+    case keychainAuthCancelled = -6
 }
 
 public class SwiftEcouponLibPlugin: NSObject, FlutterPlugin {
@@ -44,6 +47,8 @@ public class SwiftEcouponLibPlugin: NSObject, FlutterPlugin {
             store(key: arguments[0], value: arguments[1], completion: result)
         case .getPlatformVersion:
             result(UIDevice.current.systemVersion)
+        case .isDeviceSecured:
+            checkDeviceIsSecured(completion: result)
         }
     }
     
@@ -80,11 +85,18 @@ public class SwiftEcouponLibPlugin: NSObject, FlutterPlugin {
             case let .failure(error):
                 if error.isKeychainAuthError {
                     completion(FlutterError(code: "\(FlutterErrorCode.keychainAuthError.rawValue)", message: error.localizedDescription, details: nil))
+                } else if error.isKeychainAuthCancelled {
+                    completion(FlutterError(code: "\(FlutterErrorCode.keychainAuthCancelled.rawValue)", message: error.localizedDescription, details: nil))
                 } else {
                     completion(FlutterError(code: "\(FlutterErrorCode.internalError.rawValue)", message: error.localizedDescription, details: nil))
                 }
             }
         }
+    }
+    
+    private func checkDeviceIsSecured(completion: @escaping FlutterResult) {
+        let result = LAContext().canEvaluatePolicy(.deviceOwnerAuthentication, error: nil)
+        completion(result)
     }
     
     public static func register(with registrar: FlutterPluginRegistrar) {
