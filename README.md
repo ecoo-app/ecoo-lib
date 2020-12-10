@@ -1,11 +1,13 @@
 # ecoupon-lib
 
-A flutter plugin for the ecoo app that provides: 
+A flutter plugin used in the [ecoo mobile app](https://github.com/ecoo-app/ecoo-app) that provides: 
 
-- An implementation of the ecoo-backend REST API
-- Tezos cripto utility functions
+- An implementation of the [ecoo-backend](https://github.com/ecoo-app/ecoo-backend) REST API
+- Tezos crypto utility functions used to:
+    - generate Tezos accounts (public / secret key pairs)
+    - sign payloads for meta transaction on the [ecoo smart contract](https://github.com/ecoo-app/ecoo-smart-contract)
 - Secure storage implementation for iOS and Android
 
 ## Getting Started
 
-See the `WalletService` class in `lib/services/wallet_service.dart`
+See the `WalletService` class in `lib/services/wallet_service.dart` see how to interact with the ecoo-backend.
