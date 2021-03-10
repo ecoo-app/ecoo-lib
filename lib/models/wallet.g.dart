@@ -17,6 +17,7 @@ Wallet _$WalletFromJson(Map<String, dynamic> json) {
     json['balance'] as int,
     _$enumDecode(_$WalletStateEnumMap, json['state']),
     json['nonce'] as int,
+    json['can_be_used_for_verification'] as bool ?? false,
   );
 }
 
@@ -28,6 +29,7 @@ Map<String, dynamic> _$WalletToJson(Wallet instance) => <String, dynamic>{
       'balance': instance.balance,
       'state': _$WalletStateEnumMap[instance.state],
       'nonce': instance.nonce,
+      'can_be_used_for_verification': instance.canVerify,
     };
 
 T _$enumDecode<T>(

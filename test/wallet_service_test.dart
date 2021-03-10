@@ -36,7 +36,7 @@ void main() {
   const MethodChannel channel = MethodChannel('ecoupon_lib');
   final storage = Map<String, String>();
 
-  final ownerWallet = Wallet("OW123456", "publicKey", null, WalletCategory.owner, 100000, WalletState.verified, 0);
+  final ownerWallet = Wallet("OW123456", "publicKey", null, WalletCategory.owner, 100000, WalletState.verified, 0, false);
   final currency = Currency("testUUID-aaaaaa", "Cash", "\$", 0, 2, DateTime(2021), DateTime(2021), true, ownerWallet, 50);
   Wallet consumerWallet;
   Wallet companyWallet;
@@ -51,7 +51,7 @@ void main() {
     } else {
       edpk = publicKey;
     }
-    return Wallet(walletID, edpk, currency, category, 50, state, 0);
+    return Wallet(walletID, edpk, currency, category, 50, state, 0, false);
   }
 
   setUp(() async {
@@ -381,8 +381,8 @@ void main() {
     final service = WalletService(baseURL, client);
 
     when(client.get(_url("/api/profiles/company_profiles/?page_size=10"), headers: anyNamed("headers"))).thenAnswer((_) async {
-      final profile1 = CompanyProfile("dkaoijdsa", companyWallet.walletID, "Example AG", "12-3-4-5", "Test Street 1", "Wetzikon", "8620", "+41 91 123 45 67", VerificationStage.pendingPIN);
-      final profile2 = CompanyProfile("dkfdsijdsa", companyWallet.walletID, "Example AG", "12-3-4-5", "Test Street 1", "Wetzikon", "8620", "+41 91 123 45 67", VerificationStage.pendingPIN);
+      final profile1 = CompanyProfile("dkaoijdsa", companyWallet.walletID, "Example AG", null, "12-3-4-5", "Test Street 1", "Wetzikon", "8620", "+41 91 123 45 67", VerificationStage.pendingPIN);
+      final profile2 = CompanyProfile("dkfdsijdsa", companyWallet.walletID, "Example AG", null, "12-3-4-5", "Test Street 1", "Wetzikon", "8620", "+41 91 123 45 67", VerificationStage.pendingPIN);
       return http.Response(jsonEncode({"next": null, "prev": null, "results": [profile1.toJson(), profile2.toJson()]}), 200, headers: {HttpHeaders.contentTypeHeader: "application/json"});
     });
 
@@ -399,10 +399,10 @@ void main() {
 
     when(client.post(_url("/api/profiles/company_profiles/"), headers: anyNamed("headers"), body: anyNamed("body"))).thenAnswer((invocation) async {
       final Map<String, dynamic> body = jsonDecode(invocation.namedArguments[Symbol("body")]);
-      return http.Response(jsonEncode(CompanyProfile("asdasjiodas", body["wallet"], body["name"], body["uid"], body["address_street"], body["address_town"], body["address_postal_code"], body["telephone_number"], VerificationStage.pendingPIN).toJson()), 200, headers: {HttpHeaders.contentTypeHeader: "application/json"});
+      return http.Response(jsonEncode(CompanyProfile("asdasjiodas", body["wallet"], body["name"], null, body["uid"], body["address_street"], body["address_town"], body["address_postal_code"], body["telephone_number"], VerificationStage.pendingPIN).toJson()), 200, headers: {HttpHeaders.contentTypeHeader: "application/json"});
     });
 
-    final result = await service.createCompanyProfile(companyWallet, "Example AG", "12-3-4-5", "Test Street 1", "Locarno", "6600", "+41 91 123 45 67");
+    final result = await service.createCompanyProfile(companyWallet, "Example AG", null, "12-3-4-5", "Test Street 1", "Locarno", "6600", "+41 91 123 45 67");
     expect(result.walletID, equals(companyWallet.walletID));
     expect(result.verificationStage, equals(VerificationStage.pendingPIN));
     expect(result.addressTown, equals("Locarno"));

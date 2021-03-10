@@ -1,10 +1,11 @@
 import 'dart:convert';
-import 'dart:io';
+// import 'dart:io';
 
 import 'package:convert/convert.dart';
 import 'package:ecoupon_lib/common/errors.dart';
 import 'package:ecoupon_lib/common/verification_stage.dart';
 import 'package:ecoupon_lib/ecoupon_lib.dart';
+import 'package:ecoupon_lib/models/currency.dart';
 import 'package:ecoupon_lib/models/list_response.dart';
 import 'package:ecoupon_lib/models/address_auto_completion_result.dart';
 import 'package:ecoupon_lib/models/paper_wallet.dart';
@@ -17,10 +18,9 @@ import 'package:ecoupon_lib/tezos/tezos.dart';
 import 'package:ecoupon_lib/services/wallet_service.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
-import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:device_info/device_info.dart';
+// import 'package:firebase_messaging/firebase_messaging.dart';
+// import 'package:device_info/device_info.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -35,10 +35,12 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   bool _useSignInWithApple = true;
   bool _isCompany = false;
-  bool _clearSession = false;
+  bool _clearSession = true;
+  bool _isLocal = true;
 
-  final service = WalletService("https://ecoupon-backend.dev.gke.papers.tech");
-  final FirebaseMessaging _firebaseMessaging = FirebaseMessaging();
+  // final service = WalletService("https://ecoupon-backend.dev.gke.papers.tech");
+  final service = WalletService("http://localhost:8000");
+  // final FirebaseMessaging _firebaseMessaging = FirebaseMessaging();
 
   @override
   void initState() {
@@ -59,17 +61,17 @@ class _MyAppState extends State<MyApp> {
 
     _loadCachedSessionToken();
 
-    _firebaseMessaging.configure(
-      onMessage: (Map<String, dynamic> message) async {
-        print("onMessage: $message");
-      },
-      onLaunch: (Map<String, dynamic> message) async {
-        print("onLaunch: $message");
-      },
-      onResume: (Map<String, dynamic> message) async {
-        print("onResume: $message");
-      },
-    );
+    // _firebaseMessaging.configure(
+    //   onMessage: (Map<String, dynamic> message) async {
+    //     print("onMessage: $message");
+    //   },
+    //   onLaunch: (Map<String, dynamic> message) async {
+    //     print("onLaunch: $message");
+    //   },
+    //   onResume: (Map<String, dynamic> message) async {
+    //     print("onResume: $message");
+    //   },
+    // );
   }
 
   _loadCachedSessionToken() async {
@@ -93,46 +95,47 @@ class _MyAppState extends State<MyApp> {
     final prefs = await SharedPreferences.getInstance();
     SessionToken sessionToken;
     final clientInfo = await service.session().fetchClientInfo();
-    if (!_useSignInWithApple) {
-      final googleSignIn = GoogleSignIn(
-        scopes: [
-          'email'
-        ]
-      );
+    if (_isLocal) {
+      sessionToken = await service.session().fetchToken("mike", "alfA13.!");
+    } else if (!_useSignInWithApple) {
+      final googleSignIn = GoogleSignIn(scopes: ['email']);
       final response = await googleSignIn.signIn();
       final authentication = await response.authentication;
-      sessionToken = await service.session().convertToken(authentication.accessToken, clientInfo, AuthProvider.google);
-    } else {
-      final credential = await SignInWithApple.getAppleIDCredential(
-        scopes: [
-          AppleIDAuthorizationScopes.email
-        ]
-      );
-      sessionToken = await service.session().convertToken(credential.identityToken, clientInfo, AuthProvider.apple);
-    }
+      sessionToken = await service.session().convertToken(
+          authentication.accessToken, clientInfo, AuthProvider.google);
+    } 
+    // else {
+    //   final credential = await SignInWithApple.getAppleIDCredential(
+    //       scopes: [AppleIDAuthorizationScopes.email]);
+    //   sessionToken = await service.session().convertToken(
+    //       credential.identityToken, clientInfo, AuthProvider.apple);
+    // }
     if (sessionToken.access != null) {
       prefs.setString("session_token", jsonEncode(sessionToken.toJson()));
     }
   }
 
   _registerDevice() async {
-    final permissionGranted = await _firebaseMessaging.requestNotificationPermissions(const IosNotificationSettings(sound: false, badge: true, alert: true, provisional: true));
-    if (permissionGranted) {
-      final token = await _firebaseMessaging.getToken();
-      DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
-      String deviceID;
-      String name;
-      if (Platform.isAndroid) {
-        var build = await deviceInfo.androidInfo;
-        name = build.model;
-        deviceID = build.androidId;  //UUID for Android
-      } else if (Platform.isIOS) {
-        var data = await deviceInfo.iosInfo;
-        name = data.name;
-        deviceID = data.identifierForVendor;  //UUID for iOS
-      }
-      final registration = await service.registerDevice(token, deviceID: deviceID, name: name);
-    }
+    // final permissionGranted = await _firebaseMessaging
+    //     .requestNotificationPermissions(const IosNotificationSettings(
+    //         sound: false, badge: true, alert: true, provisional: true));
+    // if (permissionGranted) {
+    //   final token = await _firebaseMessaging.getToken();
+    //   DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
+    //   String deviceID;
+    //   String name;
+    //   if (Platform.isAndroid) {
+    //     var build = await deviceInfo.androidInfo;
+    //     name = build.model;
+    //     deviceID = build.androidId; //UUID for Android
+    //   } else if (Platform.isIOS) {
+    //     var data = await deviceInfo.iosInfo;
+    //     name = data.name;
+    //     deviceID = data.identifierForVendor; //UUID for iOS
+    //   }
+    //   final registration =
+    //       await service.registerDevice(token, deviceID: deviceID, name: name);
+    // }
   }
 
   _createWallet() async {
@@ -155,12 +158,33 @@ class _MyAppState extends State<MyApp> {
 
   _createProfile() async {
     if (_isCompany) {
-      final wallet = (await service.fetchWallets(pageSize: 100)).items.firstWhere((e) => e.category == WalletCategory.company && e.state == WalletState.unverified);
-      final profile = await service.createCompanyProfile(wallet, "Example AG", "CHE-111.222.333", "Main Street 1", "Zurich", "80000", "+41791234567");
+      final wallet = (await service.fetchWallets(pageSize: 100))
+          .items
+          .firstWhere((e) =>
+              e.category == WalletCategory.company &&
+              e.state == WalletState.unverified);
+      final profile = await service.createCompanyProfile(
+          wallet,
+          "Example AG",
+          null,
+          "CHE-111.222.333",
+          "Main Street 1",
+          "Zurich",
+          "80000",
+          "+41791234567");
       print(profile.toJson().toString());
     } else {
       final wallet = await service.fetchWallet("AB123456");
-      final profile = await service.createUserProfile(wallet, "John", "Doe", "+41791234567", DateTime.parse("2001-01-01"), "Main Street 1", "Zurich", "8000", "Zurich");
+      final profile = await service.createUserProfile(
+          wallet,
+          "John",
+          "Doe",
+          "+41791234567",
+          DateTime.parse("2001-01-01"),
+          "Main Street 1",
+          "Zurich",
+          "8000",
+          "Zurich");
       print(profile.toJson().toString());
     }
   }
@@ -182,7 +206,8 @@ class _MyAppState extends State<MyApp> {
   _deleteProfile() async {
     if (_isCompany) {
       final profiles = await service.fetchCompanyProfiles();
-      final profile = profiles.items.firstWhere((element) => element.verificationStage != VerificationStage.verified);
+      final profile = profiles.items.firstWhere(
+          (element) => element.verificationStage != VerificationStage.verified);
       await service.deleteCompanyProfile(profile);
     } else {
       final profiles = await service.fetchUserProfiles();
@@ -193,16 +218,21 @@ class _MyAppState extends State<MyApp> {
 
   _resendPIN() async {
     final profiles = await service.fetchUserProfiles();
-    final profile = profiles.items.firstWhere((element) => element.verificationStage == VerificationStage.pendingPIN);
+    final profile = profiles.items.firstWhere(
+        (element) => element.verificationStage == VerificationStage.pendingPIN);
     await service.resendPIN(profile);
   }
 
   _verifyProfile() async {
     if (_isCompany) {
-      final profile = (await service.fetchCompanyProfiles()).items.firstWhere((element) => element.verificationStage == VerificationStage.pendingPIN);
+      final profile = (await service.fetchCompanyProfiles()).items.firstWhere(
+          (element) =>
+              element.verificationStage == VerificationStage.pendingPIN);
       await service.verifyCompany(profile, "123456");
     } else {
-      final profile = (await service.fetchUserProfiles()).items.firstWhere((element) => element.verificationStage == VerificationStage.pendingPIN);
+      final profile = (await service.fetchUserProfiles()).items.firstWhere(
+          (element) =>
+              element.verificationStage == VerificationStage.pendingPIN);
       await service.verifyUser(profile, "123456");
     }
   }
@@ -210,7 +240,8 @@ class _MyAppState extends State<MyApp> {
   _transactions([ListCursor cursor]) async {
     if (cursor == null) {
       final wallet = await service.fetchWallet("AB123456");
-      final txs = await service.fetchTransactions(walletID: wallet.walletID, pageSize: 2);
+      final txs = await service.fetchTransactions(
+          walletID: wallet.walletID, pageSize: 2);
       for (final tx in txs.items) {
         print(tx.toJson().toString());
       }
@@ -230,7 +261,8 @@ class _MyAppState extends State<MyApp> {
   _openCashoutTransactions([ListCursor cursor]) async {
     if (cursor == null) {
       final wallet = await service.fetchWallet("AB123456");
-      final txs = await service.fetchOpenCashoutTransactions(walletID: wallet.walletID, pageSize: 2);
+      final txs = await service.fetchOpenCashoutTransactions(
+          walletID: wallet.walletID, pageSize: 2);
       for (final tx in txs.items) {
         print(tx.toJson().toString());
       }
@@ -255,6 +287,13 @@ class _MyAppState extends State<MyApp> {
     }
   }
 
+  _migrations() async {
+    final migrations = await service.fetchWalletMigrations();
+    for (final migration in migrations.items) {
+      print(migration.toJson().toString());
+    }
+  }
+
   _currencies() async {
     final currencies = await service.fetchCurrencies();
     for (final currency in currencies.items) {
@@ -274,11 +313,16 @@ class _MyAppState extends State<MyApp> {
     Transaction transaction;
     if (fromWallet.balance > 0) {
       final ownerWallet = fromWallet.currency.owner;
-      transaction = await service.transfer(fromWallet, ownerWallet, fromWallet.balance);
+      transaction =
+          await service.transfer(fromWallet, ownerWallet, fromWallet.balance);
     } else {
-      transaction = (await service.fetchOpenCashoutTransactions(walletID: fromWallet.currency.owner.walletID, pageSize: 100)).items.first;
+      transaction = (await service.fetchOpenCashoutTransactions(
+              walletID: fromWallet.currency.owner.walletID, pageSize: 100))
+          .items
+          .first;
     }
-    final cashOut = await service.cashOut(transaction, "Example AG", "CH93 0076 2011 6238 5295 7");
+    final cashOut = await service.cashOut(
+        transaction, "Example AG", "CH93 0076 2011 6238 5295 7");
     print(cashOut.toJson().toString());
   }
 
@@ -293,8 +337,10 @@ class _MyAppState extends State<MyApp> {
     final nonce = 1;
     final tokenID = 0;
 
-    final signature = walletService.signTransfer(keyPair.edpk(), toAddress, amount, nonce, tokenID, keyPair.privateKey);
-    final verification = walletService.verifyTransfer(keyPair.edpk(), toAddress, amount, nonce, tokenID, signature, keyPair.publicKey);
+    final signature = walletService.signTransfer(
+        keyPair.edpk(), toAddress, amount, nonce, tokenID, keyPair.privateKey);
+    final verification = walletService.verifyTransfer(keyPair.edpk(), toAddress,
+        amount, nonce, tokenID, signature, keyPair.publicKey);
     print("Verification: $verification");
   }
 
@@ -307,7 +353,7 @@ class _MyAppState extends State<MyApp> {
     await EcouponLib.store(key, entropy);
     print("Stored Entropy: " + entropy);
     final entropy1 = await EcouponLib.load(key);
-    print("Loaded Entropy: " + entropy1); 
+    print("Loaded Entropy: " + entropy1);
   }
 
   _crypto() async {
@@ -325,7 +371,10 @@ class _MyAppState extends State<MyApp> {
   }
 
   _fetchAutoCompletion() async {
-    final suggestions = await service.fetchAutoCompletions(target: AddressAutoCompletionTarget.user, partialAddress: "W", pageSize: 100);
+    final suggestions = await service.fetchAutoCompletions(
+        target: AddressAutoCompletionTarget.user,
+        partialAddress: "W",
+        pageSize: 100);
     for (final suggestion in suggestions.items) {
       print(suggestion.toJson().toString());
     }
@@ -338,18 +387,39 @@ class _MyAppState extends State<MyApp> {
     final nonce = CryptoService.generateRadomKey(24);
     final nonceHex = hex.encode(nonce.codeUnits);
     final crypto = CryptoService(key);
-    final wallet = PaperWallet("AB123456", nonceHex, crypto.encrypt(keyPair.edsk(), nonceHex));
+    final wallet = PaperWallet(
+        "AB123456", nonceHex, crypto.encrypt(keyPair.edsk(), nonceHex));
     final wallet2 = await service.fetchWallet("CD123456");
-    final transaction = await service.paperTransfer(wallet, wallet2, 2, hex.encode(key.codeUnits));
+    final transaction = await service.paperTransfer(
+        wallet, wallet2, 2, hex.encode(key.codeUnits));
+    print(transaction);
+  }
+
+  _paperWalletDetails() async {
+    final uri = Uri.parse("");
+    final paperWallet = PaperWallet.fromDeepLink(uri);
+    final wallet = await service.fetchWallet(paperWallet.walletID);
+    final paperWalletDetails = await service.fetchPaperWalletDetailsWithBalance(paperWallet, wallet, "");
+    print(paperWalletDetails);
+  }
+
+  _verification_new() async {
+    final paperWalletUri = Uri.parse("");
+    final paperWallet = PaperWallet.fromDeepLink(paperWalletUri);
+    final currencies = await service.fetchCurrencies();
+    final wallet = await service.createWallet(currencies.items.last);
+    final paperWalletDetails = await service.fetchPaperWalletDetailsWithBalance(paperWallet, await service.fetchWallet(paperWallet.walletID), "");
+    final transaction = await service.paperTransfer(paperWallet, wallet, paperWalletDetails.balance, "");
     print(transaction);
   }
 
   _do() async {
-    await _transactions();
+    // await _transactions();
     // await _registerDevice();
     // await _openCashoutTransactions();
     // await _currencies();
     // await _wallets();
+    // await _migrations();
     // await _transfer();
     // await _secureStorage();
     // await _login();
@@ -364,6 +434,8 @@ class _MyAppState extends State<MyApp> {
     // await _crypto();
     // await _fetchAutoCompletion();
     // await _paperWallet();
+    // await _paperWalletDetails();
+    await _verification_new();
   }
 
   _perform() async {
@@ -385,19 +457,19 @@ class _MyAppState extends State<MyApp> {
           title: const Text('Plugin example app'),
         ),
         body: Center(
-            child: SignInWithAppleButton(
-              onPressed: () async {
-                try {
-                  await _perform();
-                } on NotAuthenticatedError catch (_) {
-                  await _login();
-                  await _perform();
-                } catch (e) {
-                  print("ERROR: ${e.toString()}");
-                }
-              },
-            ),
+          child: BackButton(
+            onPressed: () async {
+              try {
+                await _perform();
+              } on NotAuthenticatedError catch (_) {
+                await _login();
+                await _perform();
+              } catch (e) {
+                print("ERROR: ${e.toString()}");
+              }
+            },
           ),
+        ),
       ),
     );
   }

@@ -27,7 +27,10 @@ class Wallet {
   @JsonKey(nullable: false)
   final int nonce;
 
-  Wallet(this.walletID, this.publicKey, this.currency, this.category, this.balance, this.state, this.nonce);
+  @JsonKey(name: "can_be_used_for_verification", defaultValue: false, required: false)
+  final bool canVerify;
+
+  Wallet(this.walletID, this.publicKey, this.currency, this.category, this.balance, this.state, this.nonce, this.canVerify);
 
   factory Wallet.fromJson(Map<String, dynamic> json) => _$WalletFromJson(json);
   Map<String, dynamic> toJson() => _$WalletToJson(this);

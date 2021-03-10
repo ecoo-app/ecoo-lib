@@ -11,6 +11,7 @@ CompanyProfile _$CompanyProfileFromJson(Map<String, dynamic> json) {
     json['uuid'] as String,
     json['wallet'] as String,
     json['name'] as String,
+    json['google_business_account'] as String,
     json['uid'] as String,
     json['address_street'] as String,
     json['address_town'] as String,
@@ -33,6 +34,7 @@ Map<String, dynamic> _$CompanyProfileToJson(CompanyProfile instance) {
   writeNotNull('uuid', instance.uuid);
   val['wallet'] = instance.walletID;
   val['name'] = instance.name;
+  val['google_business_account'] = instance.googleBusinessAccount;
   val['uid'] = instance.uid;
   val['address_street'] = instance.addressStreet;
   val['address_town'] = instance.addressTown;

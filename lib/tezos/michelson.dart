@@ -138,8 +138,9 @@ class MichelsonString extends MichelsonType {
 
   @override
   String toHex() {
-    var lengthHex = MichelsonType.valueHexLength(value);
-    return _hexType + lengthHex + hex.encode(value.codeUnits);
+    final encoded = hex.encode(value.codeUnits);
+    var lengthHex = MichelsonType.valueHexLength(encoded);
+    return _hexType + lengthHex + encoded;
   }
 }
 

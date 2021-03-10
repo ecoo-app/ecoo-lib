@@ -16,14 +16,12 @@ import 'package:ecoupon_lib/models/wallet_migration.dart';
 import 'package:ecoupon_lib/models/transaction.dart';
 import 'package:ecoupon_lib/models/list_response.dart';
 import 'package:ecoupon_lib/models/wallet.dart';
-import 'package:ecoupon_lib/services/crypto_service.dart';
 import 'package:ecoupon_lib/services/http_service.dart';
 import 'package:ecoupon_lib/services/session_service.dart';
 import 'package:ecoupon_lib/tezos/michelson.dart';
 import 'package:ecoupon_lib/tezos/tezos.dart';
 import 'package:meta/meta.dart';
 import 'package:http/http.dart' as http;
-import 'package:bs58check/bs58check.dart' as bs58Check;
 
 import '../ecoupon_lib.dart';
 
@@ -76,6 +74,7 @@ class WalletService {
   static const String _metaTransactionEndpoint = '/api/wallet/meta_transaction/';
   static const String _currencyListEndpoint = '/api/currency/currency/list/';
   static const String _walletEndpoint = '/api/wallet/wallet/';
+  static const String _paperWalletEndpoint = '/api/wallet/paper_wallet/';
   static const String _registerDeviceEndpoint = '/api/devices/';
   static const String _migrationEndpoint = '/api/wallet/wallet_public_key_transfer_request/';
   static const String _cashOutEndpoint = '/api/wallet/cash_out_request/';
@@ -145,8 +144,9 @@ class WalletService {
   /// Fetches the list of wallet migraitons for the current user.
   /// Throws [HTTPError] if the eCoupon backend returns an error response (meaning HTTP status code is not between 200-299).
   /// Throws [NotAuthenticatedError] if the user is not logged in.
-  Future<ListResponse<WalletMigration>> fetchWalletMigrations({ListCursor cursor, int pageSize = 10}) async {
-    final endpoint = cursor?.next ?? "${WalletService._migrationEndpoint}?page_size=$pageSize";
+  Future<ListResponse<WalletMigration>> fetchWalletMigrations({ListCursor cursor, int pageSize = 10, String walletID}) async {
+    final filter = walletID != null ? "&wallet__wallet_id=$walletID" : "";
+    final endpoint = cursor?.next ?? "${WalletService._migrationEndpoint}?page_size=$pageSize$filter";
     return _fetchList((dynamic json) { return WalletMigration.fromJson(json); }, endpoint);
   }
 
@@ -176,15 +176,8 @@ class WalletService {
   /// Throws [HTTPError] if the eCoupon backend returns an error response (meaning HTTP status code is not between 200-299).
   /// Throws [NotAuthenticatedError] if the user is not logged in.
   Future<Transaction> paperTransfer(PaperWallet source, Wallet destination, int amount, String decryptionKey) async {
-    final crypto = CryptoService(decryptionKey);
-    final privateKey = crypto.decrypt(source.privateKey, source.nonce);
-    final edsk = String.fromCharCodes(privateKey.toList());
     final wallet = await fetchWallet(source.walletID);
-    final secretKey = bs58Check.decode(edsk).sublist(4);
-    final publicKey = bs58Check.decode(wallet.publicKey).sublist(4);
-    final secretKeyList = secretKey.toList();
-    secretKeyList.addAll(publicKey);
-    final fullSecret = Uint8List.fromList(secretKeyList);
+    final fullSecret = source.secret(decryptionKey, wallet.publicKey);
     final signature = signTransfer(wallet.publicKey, Tezos.getAddressFromEncodedPublicKey(destination.publicKey), amount, wallet.nonce + 1, destination.currency.tokenID, fullSecret);
     final transaction = Transaction(null, source.walletID, destination.walletID, amount, null, null, null, wallet.nonce + 1, signature, null);
     final json = await _http.postTo(WalletService._metaTransactionEndpoint, transaction.toJson());
@@ -204,6 +197,20 @@ class WalletService {
   /// Throws [NotAuthenticatedError] if the user is not logged in.
   Future<Wallet> fetchWallet(String walletID) async {
     final Map<String, dynamic> json = await _http.getFrom("${WalletService._walletEndpoint}$walletID/");
+    return Wallet.fromJson(json);
+  }
+
+  /// Fetches the wallet with balance for the given [paperWallet], [wallet] (without balance) and [decryptionKey].
+  /// Throws [HTTPError] if the eCoupon backend returns an error response (meaning HTTP status code is not between 200-299).
+  /// Throws [NotAuthenticatedError] if the user is not logged in.
+  Future<Wallet> fetchPaperWalletDetailsWithBalance(PaperWallet paperWallet, Wallet wallet, String decryptionKey) async {
+    final message = MichelsonPair(
+      MichelsonString(paperWallet.walletID),
+      MichelsonInt(wallet.currency.tokenID)
+    ).pack();
+    final fullSecret = paperWallet.secret(decryptionKey, wallet.publicKey);
+    final signature = Tezos.sign(message, fullSecret);
+    final Map<String, dynamic> json = await _http.getFrom("${WalletService._paperWalletEndpoint}${paperWallet.walletID}/$signature/");
     return Wallet.fromJson(json);
   }
 
@@ -243,11 +250,11 @@ class WalletService {
   /// Throws [HTTPError] if the eCoupon backend returns an error response (meaning HTTP status code is not between 200-299).
   /// Throws [NotAuthenticatedError] if the user is not logged in.
   /// Throws [InvalidWallet] if the given [wallet] is not a company wallet.
-  Future<CompanyProfile> createCompanyProfile(Wallet wallet, String name, String uid, String addressStreet, String addressTown, String addressPostalCode, String telephoneNumber) async {
+  Future<CompanyProfile> createCompanyProfile(Wallet wallet, String name, String googleBusinessAccount, String uid, String addressStreet, String addressTown, String addressPostalCode, String telephoneNumber) async {
     if (wallet.category != WalletCategory.company) {
       throw InvalidWallet();
     }
-    final profile = CompanyProfile(null, wallet.walletID, name, uid, addressStreet, addressTown, addressPostalCode, telephoneNumber, null);
+    final profile = CompanyProfile(null, wallet.walletID, name, uid, googleBusinessAccount, addressStreet, addressTown, addressPostalCode, telephoneNumber, null);
     final Map<String, dynamic> json = await _http.postTo(WalletService._companyProfilesEndpoint, profile.toJson());
     return CompanyProfile.fromJson(json);
   }
