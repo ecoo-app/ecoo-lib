@@ -195,7 +195,7 @@ void main() {
       final verified = service.verifyTransfer(fromPK, toAddress, body["amount"], body["nonce"], currency.tokenID, signature, Tezos.getKeyBytesFromEncoded(fromPK));
       if (verified) {
         return http.Response(
-          jsonEncode(Transaction("asdasdasda", body["from_wallet"], body["to_wallet"], body["amount"], TransactionState.open, DateTime.now(), "", body["nonce"], signature, null).toJson()), 
+          jsonEncode(Transaction("asdasdasda", body["from_wallet"], body["to_wallet"], body["amount"], TransactionState.open, DateTime.now(), "", body["nonce"], signature, null, null).toJson()), 
           200, 
           headers: {HttpHeaders.contentTypeHeader: "application/json"}
         );
@@ -226,7 +226,7 @@ void main() {
       final verified = service.verifyTransfer(fromPK, toAddress, body["amount"], body["nonce"] + 1, currency.tokenID, signature, Tezos.getKeyBytesFromEncoded(fromPK));
       if (verified) {
         return http.Response(
-          jsonEncode(Transaction("asdasdasda", body["from_wallet"], body["to_wallet"], body["amount"], TransactionState.open, DateTime.now(), "", body["nonce"], signature, null).toJson()), 
+          jsonEncode(Transaction("asdasdasda", body["from_wallet"], body["to_wallet"], body["amount"], TransactionState.open, DateTime.now(), "", body["nonce"], signature, null, null).toJson()), 
           200, 
           headers: {HttpHeaders.contentTypeHeader: "application/json"}
         );
@@ -264,7 +264,7 @@ void main() {
       final verified = service.verifyTransfer(fromPK, toAddress, body["amount"], body["nonce"], currency.tokenID, signature, Tezos.getKeyBytesFromEncoded(fromPK));
       if (verified) {
         return http.Response(
-          jsonEncode(Transaction("asdasdasda", body["from_wallet"], body["to_wallet"], body["amount"], TransactionState.open, DateTime.now(), "", body["nonce"], signature, null).toJson()), 
+          jsonEncode(Transaction("asdasdasda", body["from_wallet"], body["to_wallet"], body["amount"], TransactionState.open, DateTime.now(), "", body["nonce"], signature, null, null).toJson()), 
           200, 
           headers: {HttpHeaders.contentTypeHeader: "application/json"}
         );
@@ -307,7 +307,7 @@ void main() {
       final verified = service.verifyTransfer(fromPK, toAddress, body["amount"], body["nonce"], currency.tokenID, signature, Tezos.getKeyBytesFromEncoded(fromPK));
       if (verified) {
         return http.Response(
-          jsonEncode(Transaction("asdasdasda", body["from_wallet"], body["to_wallet"], body["amount"], TransactionState.open, DateTime.now(), "", body["nonce"], signature, null).toJson()), 
+          jsonEncode(Transaction("asdasdasda", body["from_wallet"], body["to_wallet"], body["amount"], TransactionState.open, DateTime.now(), "", body["nonce"], signature, null, null).toJson()), 
           200, 
           headers: {HttpHeaders.contentTypeHeader: "application/json"}
         );
@@ -414,8 +414,8 @@ void main() {
     final service = WalletService(baseURL, client);
 
     when(client.get(_url("/api/wallet/transaction/?search=${consumerWallet.walletID}&page_size=10"), headers: anyNamed("headers"))).thenAnswer((_) async {
-      final transaction1 = Transaction("sdasadas", consumerWallet.walletID, companyWallet.walletID, 1, TransactionState.open, DateTime.now(), "", null, null, null);
-      final transaction2 = Transaction("sdasadas", companyWallet.walletID, consumerWallet.walletID, 10, TransactionState.open, DateTime.now(), "", null, null, "oodGpFWJu9M5sBB1P7i7DL45awS6sNiuLJVJZzwwUFwVp43MPV3");
+      final transaction1 = Transaction("sdasadas", consumerWallet.walletID, companyWallet.walletID, 1, TransactionState.open, DateTime.now(), "", null, null, null, null);
+      final transaction2 = Transaction("sdasadas", companyWallet.walletID, consumerWallet.walletID, 10, TransactionState.open, DateTime.now(), "", null, null, "oodGpFWJu9M5sBB1P7i7DL45awS6sNiuLJVJZzwwUFwVp43MPV3", null);
       return http.Response(jsonEncode({"next": null, "prev": null, "results": [transaction1.toJson(), transaction2.toJson()]}), 200, headers: {HttpHeaders.contentTypeHeader: "application/json"});
     });
 
@@ -454,7 +454,7 @@ void main() {
     final client = MockClient();
     final service = WalletService(baseURL, client);
 
-    final transaction = Transaction("sdasadas", consumerWallet.walletID, companyWallet.walletID, 1, TransactionState.open, DateTime.now(), "", 1, "adssada", null);
+    final transaction = Transaction("sdasadas", consumerWallet.walletID, companyWallet.walletID, 1, TransactionState.open, DateTime.now(), "", 1, "adssada", null, null);
 
     when(client.post(_url("/api/wallet/cash_out_request/"), headers: anyNamed("headers"), body: anyNamed("body"))).thenAnswer((invocation) async {
       final Map<String, dynamic> body = jsonDecode(invocation.namedArguments[Symbol("body")]);
