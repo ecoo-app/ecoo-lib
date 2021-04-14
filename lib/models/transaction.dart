@@ -35,7 +35,10 @@ class Transaction {
   @JsonKey(nullable: true, includeIfNull: false)
   final String operationHash;
 
-  Transaction(this.uuid, this.from, this.to, this.amount, this.state, this.created, this.tag, this.nonce, this.signature, this.operationHash);
+  @JsonKey(nullable: true, includeIfNull: false)
+  final String notes;
+
+  Transaction(this.uuid, this.from, this.to, this.amount, this.state, this.created, this.tag, this.nonce, this.signature, this.operationHash, this.notes);
 
   factory Transaction.fromJson(Map<String, dynamic> json) => _$TransactionFromJson(json);
   Map<String, dynamic> toJson() => _$TransactionToJson(this);

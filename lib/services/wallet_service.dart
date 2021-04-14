@@ -161,12 +161,12 @@ class WalletService {
   /// Creates a transfer between the [source] wallet to the [destination] wallet for the given [amount].
   /// Throws [HTTPError] if the eCoupon backend returns an error response (meaning HTTP status code is not between 200-299).
   /// Throws [NotAuthenticatedError] if the user is not logged in.
-  Future<Transaction> transfer(Wallet source, Wallet destination, int amount) async {
+  Future<Transaction> transfer(Wallet source, Wallet destination, int amount, {String notes}) async {
     final entropy = await EcouponLib.load(source.walletID);
     final pair = Tezos.generateKeyPairFromEntropy(entropy);
     final nonce = await _fetchNonce(walletID: source.walletID);
     final signature = signTransfer(pair.edpk(), Tezos.getAddressFromEncodedPublicKey(destination.publicKey), amount, nonce + 1, source.currency.tokenID, pair.privateKey);
-    final transaction = Transaction(null, source.walletID, destination.walletID, amount, null, null, null, nonce + 1, signature, null);
+    final transaction = Transaction(null, source.walletID, destination.walletID, amount, null, null, null, nonce + 1, signature, null, notes);
     final json = await _http.postTo(WalletService._metaTransactionEndpoint, transaction.toJson());
     return Transaction.fromJson(json);
   }
@@ -175,11 +175,11 @@ class WalletService {
   /// to decrypt the paper wallet's private key. This key should not be hardcoded in the code and committed to git.
   /// Throws [HTTPError] if the eCoupon backend returns an error response (meaning HTTP status code is not between 200-299).
   /// Throws [NotAuthenticatedError] if the user is not logged in.
-  Future<Transaction> paperTransfer(PaperWallet source, Wallet destination, int amount, String decryptionKey) async {
+  Future<Transaction> paperTransfer(PaperWallet source, Wallet destination, int amount, String decryptionKey, {String notes}) async {
     final wallet = await fetchWallet(source.walletID);
     final fullSecret = source.secret(decryptionKey, wallet.publicKey);
     final signature = signTransfer(wallet.publicKey, Tezos.getAddressFromEncodedPublicKey(destination.publicKey), amount, wallet.nonce + 1, destination.currency.tokenID, fullSecret);
-    final transaction = Transaction(null, source.walletID, destination.walletID, amount, null, null, null, wallet.nonce + 1, signature, null);
+    final transaction = Transaction(null, source.walletID, destination.walletID, amount, null, null, null, wallet.nonce + 1, signature, null, notes);
     final json = await _http.postTo(WalletService._metaTransactionEndpoint, transaction.toJson());
     return Transaction.fromJson(json);
   }
