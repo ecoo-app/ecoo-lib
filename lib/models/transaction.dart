@@ -4,7 +4,6 @@ part 'transaction.g.dart';
 
 @JsonSerializable()
 class Transaction {
-  
   @JsonKey(includeIfNull: false)
   final String uuid;
 
@@ -16,13 +15,13 @@ class Transaction {
 
   @JsonKey(nullable: false)
   final int amount;
-  
+
   @JsonKey(includeIfNull: false)
   final TransactionState state;
-  
+
   @JsonKey(name: "created_at", includeIfNull: false)
   final DateTime created;
-  
+
   @JsonKey(includeIfNull: false)
   final String tag;
 
@@ -32,21 +31,37 @@ class Transaction {
   @JsonKey(nullable: false, includeIfNull: false)
   final String signature;
 
-  @JsonKey(nullable: true, includeIfNull: false)
+  @JsonKey(name: "operation_hash", nullable: true, includeIfNull: false)
   final String operationHash;
 
   @JsonKey(nullable: true, includeIfNull: false)
   final String notes;
 
-  Transaction(this.uuid, this.from, this.to, this.amount, this.state, this.created, this.tag, this.nonce, this.signature, this.operationHash, this.notes);
+  Transaction(
+      this.uuid,
+      this.from,
+      this.to,
+      this.amount,
+      this.state,
+      this.created,
+      this.tag,
+      this.nonce,
+      this.signature,
+      this.operationHash,
+      this.notes);
 
-  factory Transaction.fromJson(Map<String, dynamic> json) => _$TransactionFromJson(json);
+  factory Transaction.fromJson(Map<String, dynamic> json) =>
+      _$TransactionFromJson(json);
   Map<String, dynamic> toJson() => _$TransactionToJson(this);
 }
 
 enum TransactionState {
-  @JsonValue(1) open,
-  @JsonValue(2) pending,
-  @JsonValue(3) done,
-  @JsonValue(4) failed
+  @JsonValue(1)
+  open,
+  @JsonValue(2)
+  pending,
+  @JsonValue(3)
+  done,
+  @JsonValue(4)
+  failed
 }

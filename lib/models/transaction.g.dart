@@ -19,7 +19,7 @@ Transaction _$TransactionFromJson(Map<String, dynamic> json) {
     json['tag'] as String,
     json['nonce'] as int,
     json['signature'] as String,
-    json['operationHash'] as String,
+    json['operation_hash'] as String,
     json['notes'] as String,
   );
 }
@@ -42,7 +42,7 @@ Map<String, dynamic> _$TransactionToJson(Transaction instance) {
   writeNotNull('tag', instance.tag);
   val['nonce'] = instance.nonce;
   val['signature'] = instance.signature;
-  writeNotNull('operationHash', instance.operationHash);
+  writeNotNull('operation_hash', instance.operationHash);
   writeNotNull('notes', instance.notes);
   return val;
 }
